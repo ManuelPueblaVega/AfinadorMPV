@@ -2,18 +2,15 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Afinador de Instrumentos de Cuerda</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Afinador de Instrumentos Móvil</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzicato/0.6.4/Pizzicato.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .needle {
             transform-origin: 50% 100%;
-            transition: transform 0.5s ease;
-        }
-        .string-indicator {
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease-out;
         }
         .active-string {
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.7);
@@ -21,30 +18,6 @@
         }
         .meter-container {
             perspective: 1000px;
-        }
-        .meter {
-            transform-style: preserve-3d;
-            transition: transform 0.5s ease;
-        }
-        .frequency-display {
-            font-family: 'Courier New', monospace;
-        }
-        .tuner-container {
-            background: radial-gradient(circle, rgba(30,41,59,1) 0%, rgba(15,23,42,1) 100%);
-        }
-        .string-selector-btn {
-            transition: all 0.2s ease;
-        }
-        .string-selector-btn:hover {
-            transform: translateY(-3px);
-        }
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
-        }
-        .listening-animation {
-            animation: pulse 1.5s infinite;
         }
         .green-zone {
             position: absolute;
@@ -56,112 +29,143 @@
             background-color: rgba(74, 222, 128, 0.3);
             border-radius: 5px;
         }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .listening-animation {
+            animation: pulse 1.5s infinite;
+        }
+        .instrument-selector {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .instrument-selector::-webkit-scrollbar {
+            display: none;
+        }
+        .status-light {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .tuned-indicator {
+            animation: tunedPulse 1.5s infinite;
+        }
+        @keyframes tunedPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .string-button {
+            transition: all 0.2s ease;
+        }
+        .string-button.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.8);
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex flex-col">
-    <header class="bg-slate-800 py-4 shadow-lg">
+    <header class="bg-slate-800 py-3 sticky top-0 z-10 shadow-lg">
         <div class="container mx-auto px-4">
-            <h1 class="text-3xl font-bold text-center text-blue-400">
-                <i class="fas fa-guitar mr-2"></i> Afinador Profesional
+            <h1 class="text-xl font-bold text-center text-blue-400">
+                <i class="fas fa-guitar mr-2"></i> Afinador MPV
             </h1>
         </div>
     </header>
 
-    <main class="flex-grow container mx-auto px-4 py-8">
-        <div class="max-w-3xl mx-auto tuner-container rounded-2xl p-6 shadow-xl">
-            <div class="mb-8 text-center">
-                <h2 class="text-2xl font-semibold mb-2">Selecciona tu instrumento</h2>
-                <div class="flex justify-center space-x-4 mb-6">
-                    <button id="guitar-btn" class="string-selector-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
-                        <i class="fas fa-guitar mr-2"></i> Guitarra
-                    </button>
-                    <button id="bass-btn" class="string-selector-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
-                        <i class="fas fa-guitar-electric mr-2"></i> Bajo
-                    </button>
-                    <button id="violin-btn" class="string-selector-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
-                        <i class="fas fa-violin mr-2"></i> Violín
-                    </button>
-                    <button id="ukulele-btn" class="string-selector-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
-                        <i class="fas fa-music mr-2"></i> Ukelele
-                    </button>
-                </div>
-
-                <div id="instrument-info" class="bg-slate-700 p-4 rounded-lg mb-6">
-                    <h3 class="text-xl font-medium mb-2" id="instrument-name">Guitarra Estándar</h3>
-                    <p class="text-slate-300" id="instrument-tuning">Afinación: E2 A2 D3 G3 B3 E4</p>
-                </div>
-            </div>
-
-            <div class="meter-container bg-slate-800 rounded-xl p-6 mb-8">
-                <div class="relative h-64 mb-8">
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full"></div>
-                        <div class="green-zone"></div>
-                    </div>
-                    <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2">
-                        <div class="needle w-1 h-24 bg-white rounded-full" style="transform: rotate(0deg);"></div>
-                    </div>
-                    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-blue-500 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg">
-                        <span id="current-note">--</span>
-                    </div>
-                </div>
-
-                <div class="flex justify-between mb-2">
-                    <span class="text-red-400 font-medium">Demasiado bajo</span>
-                    <span class="text-green-400 font-medium">Afinado (±5 cents)</span>
-                    <span class="text-red-400 font-medium">Demasiado alto</span>
-                </div>
-
-                <div class="text-center mb-6">
-                    <div class="inline-block bg-slate-700 px-4 py-2 rounded-lg">
-                        <span class="font-mono frequency-display text-xl">
-                            Frecuencia: <span id="frequency">0</span> Hz
-                        </span>
-                    </div>
-                </div>
-
-                <div class="text-center">
-                    <button id="listen-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full text-lg font-semibold flex items-center mx-auto">
-                        <i class="fas fa-microphone mr-2"></i> <span id="listen-text">Iniciar Afinado</span>
-                    </button>
-                    <p id="listening-status" class="mt-2 text-blue-300 listening-animation hidden">
-                        <i class="fas fa-circle-notch fa-spin mr-2"></i> Escuchando...
-                    </p>
-                    <p id="detection-status" class="mt-2 text-yellow-300 hidden">
-                        <i class="fas fa-info-circle mr-2"></i> Toca una cuerda clara y sostenida
-                    </p>
-                </div>
-            </div>
-
-            <div id="strings-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Las cuerdas se generarán dinámicamente aquí -->
+    <main class="flex-grow container mx-auto px-0 pb-16">
+        <!-- Selector de instrumentos horizontal -->
+        <div class="bg-slate-800 py-3 overflow-x-auto instrument-selector">
+            <div class="flex space-x-2 px-2 w-max">
+                <button id="guitar-btn" class="string-selector-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center whitespace-nowrap">
+                    <i class="fas fa-guitar mr-2"></i> Guitarra
+                </button>
+                <button id="bass-btn" class="string-selector-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center whitespace-nowrap">
+                    <i class="fas fa-guitar-electric mr-2"></i> Bajo
+                </button>
+                <button id="violin-btn" class="string-selector-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center whitespace-nowrap">
+                    <i class="fas fa-violin mr-2"></i> Violín
+                </button>
+                <button id="ukulele-btn" class="string-selector-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center whitespace-nowrap">
+                    <i class="fas fa-music mr-2"></i> Ukelele
+                </button>
             </div>
         </div>
 
-        <div class="mt-8 bg-slate-800 rounded-xl p-6">
-            <h2 class="text-xl font-semibold mb-4 text-center">Instrucciones</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-slate-700 p-4 rounded-lg">
-                    <h3 class="font-medium text-blue-300 mb-2"><i class="fas fa-microphone mr-2"></i>Paso 1</h3>
-                    <p>Selecciona tu instrumento y haz clic en "Iniciar Afinación". Permite el acceso al micrófono cuando se solicite.</p>
+        <!-- Visualizador principal -->
+        <div class="meter-container bg-slate-800 p-4">
+            <div class="relative h-40 mb-4">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full"></div>
+                    <div class="green-zone"></div>
                 </div>
-                <div class="bg-slate-700 p-4 rounded-lg">
-                    <h3 class="font-medium text-blue-300 mb-2"><i class="fas fa-music mr-2"></i>Paso 2</h3>
-                    <p>Toca una cuerda al aire de forma clara y sostenida. La aplicación detectará automáticamente qué cuerda estás tocando.</p>
+                <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2">
+                    <div class="needle w-1.5 h-20 bg-white rounded-full" style="transform: rotate(0deg);"></div>
                 </div>
-                <div class="bg-slate-700 p-4 rounded-lg">
-                    <h3 class="font-medium text-blue-300 mb-2"><i class="fas fa-tools mr-2"></i>Paso 3</h3>
-                    <p>Ajusta la tensión de la cuerda según las indicaciones hasta que la aguja esté en la zona verde (±5 cents).</p>
+                <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm">
+                    <span id="current-note">--</span>
+                </div>
+            </div>
+
+            <div class="flex justify-between text-xs mb-2 px-2">
+                <span class="text-red-400">Bajo</span>
+                <span class="text-green-400">Afinado</span>
+                <span class="text-red-400">Alto</span>
+            </div>
+
+            <!-- Información de frecuencia y cuerda actual -->
+            <div class="bg-slate-700 rounded-lg p-3 mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="font-mono text-sm">
+                        Frecuencia: <span id="frequency">0</span> Hz
+                    </div>
+                    <div id="tuning-status" class="text-sm font-medium hidden">
+                        <span class="status-light bg-gray-500"></span>
+                        <span id="tuning-status-text">--</span>
+                    </div>
+                </div>
+                
+                <div id="current-string-info" class="text-center py-3">
+                    <div id="string-details" class="mb-2">
+                        <div class="text-lg font-bold" id="detected-string">-</div>
+                        <div class="text-sm text-slate-300" id="target-frequency">Objetivo: -- Hz</div>
+                    </div>
+                    
+                    <div id="tuning-instruction" class="text-sm">
+                        Toca una cuerda clara
+                    </div>
+                    
+                    <!-- Indicador de afinación correcta -->
+                    <div id="tuned-indicator" class="mt-3 hidden">
+                        <div class="bg-green-600 text-white py-2 px-4 rounded-full inline-flex items-center tuned-indicator">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <span class="font-bold">CUERDA AFINADA</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón principal -->
+            <button id="listen-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full text-base font-semibold flex items-center justify-center mb-3">
+                <i class="fas fa-microphone mr-2"></i> <span id="listen-text">Iniciar Afinado</span>
+            </button>
+            <p id="listening-status" class="text-blue-300 listening-animation text-center text-sm hidden">
+                <i class="fas fa-circle-notch fa-spin mr-2"></i> Escuchando...
+            </p>
+            
+            <!-- Selector rápido de cuerdas -->
+            <div class="mt-4">
+                <h3 class="text-sm font-medium mb-2 text-slate-300">Seleccionar cuerda:</h3>
+                <div id="quick-string-selector" class="grid grid-cols-3 gap-2">
+                    <!-- Se llenará dinámicamente -->
                 </div>
             </div>
         </div>
     </main>
-
-    <footer class="bg-slate-800 py-4 mt-8">
-        <div class="container mx-auto px-4 text-center text-slate-400">
-            <p>Afinador con fines pedagógicos. Profesor Manuel Puebla Vega &copy; 2025</p>
-        </div>
-    </footer>
 
     <script>
         // Configuraciones de instrumentos
@@ -221,22 +225,27 @@
         let lastStableFrequency = 0;
         let stableCount = 0;
         let lastUpdateTime = 0;
+        let isTuned = false;
 
         // Elementos del DOM
         const guitarBtn = document.getElementById('guitar-btn');
         const bassBtn = document.getElementById('bass-btn');
         const violinBtn = document.getElementById('violin-btn');
         const ukuleleBtn = document.getElementById('ukulele-btn');
-        const instrumentName = document.getElementById('instrument-name');
-        const instrumentTuning = document.getElementById('instrument-tuning');
         const listenBtn = document.getElementById('listen-btn');
         const listenText = document.getElementById('listen-text');
         const listeningStatus = document.getElementById('listening-status');
-        const detectionStatus = document.getElementById('detection-status');
         const currentNoteElement = document.getElementById('current-note');
         const frequencyElement = document.getElementById('frequency');
-        const stringsContainer = document.getElementById('strings-container');
         const needle = document.querySelector('.needle');
+        const currentStringInfo = document.getElementById('current-string-info');
+        const tuningInstruction = document.getElementById('tuning-instruction');
+        const detectedString = document.getElementById('detected-string');
+        const targetFrequency = document.getElementById('target-frequency');
+        const tuningStatus = document.getElementById('tuning-status');
+        const tuningStatusText = document.getElementById('tuning-status-text');
+        const tunedIndicator = document.getElementById('tuned-indicator');
+        const quickStringSelector = document.getElementById('quick-string-selector');
 
         // Inicialización
         document.addEventListener('DOMContentLoaded', () => {
@@ -258,10 +267,6 @@
             currentInstrument = instrument;
             const instrumentData = instruments[instrument];
             
-            // Actualizar la información del instrumento
-            instrumentName.textContent = instrumentData.name;
-            instrumentTuning.textContent = `Afinación: ${instrumentData.tuning}`;
-            
             // Resaltar el botón del instrumento activo
             document.querySelectorAll('.string-selector-btn').forEach(btn => {
                 btn.classList.remove('bg-blue-700', 'ring-2', 'ring-blue-400');
@@ -272,36 +277,54 @@
             activeBtn.classList.remove('bg-blue-600');
             activeBtn.classList.add('bg-blue-700', 'ring-2', 'ring-blue-400');
             
-            // Generar las cuerdas del instrumento
-            generateStrings(instrumentData.strings);
+            // Generar el selector rápido de cuerdas
+            generateQuickStringSelector(instrumentData.strings);
+            
+            // Resetear la interfaz
+            resetUI();
         }
 
-        // Generar las cuerdas del instrumento en la interfaz
-        function generateStrings(strings) {
-            stringsContainer.innerHTML = '';
+        // Generar el selector rápido de cuerdas
+        function generateQuickStringSelector(strings) {
+            quickStringSelector.innerHTML = '';
             
             strings.forEach(string => {
-                const stringElement = document.createElement('div');
-                stringElement.className = 'bg-slate-700 p-4 rounded-lg string-indicator';
-                stringElement.dataset.note = string.note;
-                stringElement.dataset.frequency = string.frequency;
-                stringElement.dataset.octave = string.octave;
-                stringElement.dataset.stringNumber = string.stringNumber;
-                
-                stringElement.innerHTML = `
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-bold text-lg">Cuerda ${string.stringNumber}</span>
-                        <span class="bg-slate-600 px-2 py-1 rounded text-sm">${string.note}${string.octave}</span>
-                    </div>
-                    <div class="flex items-center mb-2">
-                        <div class="w-4 h-4 rounded-full bg-gray-500 mr-2 string-status-light"></div>
-                        <span class="text-sm string-status-text">No detectada</span>
-                    </div>
-                    <div class="text-sm string-instruction">Toca la cuerda clara y sostenida</div>
+                const stringBtn = document.createElement('button');
+                stringBtn.className = 'string-button bg-slate-700 hover:bg-slate-600 p-2 rounded text-sm';
+                stringBtn.innerHTML = `
+                    <div class="font-medium">Cuerda ${string.stringNumber}</div>
+                    <div class="text-xs text-slate-300">${string.note}${string.octave}</div>
                 `;
                 
-                stringsContainer.appendChild(stringElement);
+                stringBtn.addEventListener('click', () => {
+                    // Resaltar el botón seleccionado
+                    document.querySelectorAll('.string-button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    stringBtn.classList.add('active');
+                    
+                    // Mostrar información de la cuerda seleccionada
+                    showSelectedStringInfo(string);
+                });
+                
+                quickStringSelector.appendChild(stringBtn);
             });
+        }
+
+        // Mostrar información de la cuerda seleccionada manualmente
+        function showSelectedStringInfo(string) {
+            detectedString.textContent = `Cuerda ${string.stringNumber} (${string.note}${string.octave})`;
+            targetFrequency.textContent = `Objetivo: ${string.frequency.toFixed(2)} Hz`;
+            tuningInstruction.textContent = 'Toca esta cuerda para afinar';
+            
+            // Mostrar estado de afinación
+            tuningStatus.classList.remove('hidden');
+            tuningStatusText.textContent = 'Esperando sonido...';
+            document.querySelector('#tuning-status .status-light').className = 'status-light bg-gray-500';
+            
+            // Ocultar indicador de afinado
+            tunedIndicator.classList.add('hidden');
+            isTuned = false;
         }
 
         // Alternar el estado de escucha
@@ -310,14 +333,12 @@
                 stopListening();
                 listenText.textContent = 'Iniciar Afinado';
                 listeningStatus.classList.add('hidden');
-                detectionStatus.classList.add('hidden');
                 listenBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
                 listenBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
             } else {
                 startListening();
                 listenText.textContent = 'Detener Afinado';
                 listeningStatus.classList.remove('hidden');
-                detectionStatus.classList.remove('hidden');
                 listenBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                 listenBtn.classList.add('bg-red-600', 'hover:bg-red-700');
             }
@@ -331,7 +352,7 @@
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioContext.createAnalyser();
-                analyser.fftSize = 4096; // Mayor resolución para mejor detección
+                analyser.fftSize = 4096;
             }
             
             // Solicitar acceso al micrófono
@@ -344,6 +365,7 @@
                     lastStableFrequency = 0;
                     stableCount = 0;
                     lastUpdateTime = 0;
+                    isTuned = false;
                     
                     // Iniciar el análisis de frecuencia
                     analyzeFrequency();
@@ -351,12 +373,7 @@
                 .catch(err => {
                     console.error('Error al acceder al micrófono:', err);
                     alert('No se pudo acceder al micrófono. Asegúrate de haber dado los permisos necesarios.');
-                    isListening = false;
-                    listenText.textContent = 'Iniciar Afinado';
-                    listeningStatus.classList.add('hidden');
-                    detectionStatus.classList.add('hidden');
-                    listenBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
-                    listenBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    stopListening();
                 });
         }
 
@@ -372,23 +389,7 @@
             }
             
             // Resetear la interfaz
-            currentNoteElement.textContent = '--';
-            frequencyElement.textContent = '0';
-            needle.style.transform = 'rotate(0deg)';
-            
-            // Resetear las cuerdas
-            document.querySelectorAll('.string-indicator').forEach(string => {
-                string.classList.remove('active-string');
-                const statusLight = string.querySelector('.string-status-light');
-                const statusText = string.querySelector('.string-status-text');
-                const instruction = string.querySelector('.string-instruction');
-                
-                statusLight.className = 'w-4 h-4 rounded-full bg-gray-500 mr-2 string-status-light';
-                statusText.textContent = 'No detectada';
-                statusText.className = 'text-sm string-status-text';
-                instruction.textContent = 'Toca la cuerda clara y sostenida';
-                instruction.className = 'text-sm string-instruction';
-            });
+            resetUI();
         }
 
         // Analizar la frecuencia del sonido
@@ -397,11 +398,10 @@
             const dataArray = new Uint8Array(bufferLength);
             analyser.getByteFrequencyData(dataArray);
             
-            // Encontrar la frecuencia dominante con mayor precisión
+            // Encontrar la frecuencia dominante
             let maxAmplitude = 0;
             let maxIndex = 0;
             
-            // Solo analizar frecuencias entre 20Hz y 2000Hz (rango útil para instrumentos)
             const minFrequency = 20;
             const maxFrequency = 2000;
             const minIndex = Math.floor(minFrequency * analyser.fftSize / audioContext.sampleRate);
@@ -438,7 +438,7 @@
             } else {
                 // Si no hay suficiente amplitud, resetear
                 if (performance.now() - lastUpdateTime > 500) {
-                    resetUI();
+                    if (!isTuned) resetUI();
                 }
             }
             
@@ -452,18 +452,19 @@
             frequencyElement.textContent = '0';
             needle.style.transform = 'rotate(0deg)';
             
-            document.querySelectorAll('.string-indicator').forEach(string => {
-                string.classList.remove('active-string');
-                const statusLight = string.querySelector('.string-status-light');
-                const statusText = string.querySelector('.string-status-text');
-                const instruction = string.querySelector('.string-instruction');
-                
-                statusLight.className = 'w-4 h-4 rounded-full bg-gray-500 mr-2 string-status-light';
-                statusText.textContent = 'No detectada';
-                statusText.className = 'text-sm string-status-text';
-                instruction.textContent = 'Toca la cuerda clara y sostenida';
-                instruction.className = 'text-sm string-instruction';
-            });
+            // Resetear la información de la cuerda actual
+            detectedString.textContent = '-';
+            targetFrequency.textContent = 'Objetivo: -- Hz';
+            tuningInstruction.textContent = 'Toca una cuerda clara y sostenida';
+            
+            // Resetear estado de afinación
+            tuningStatus.classList.remove('hidden');
+            tuningStatusText.textContent = 'No se detecta cuerda';
+            document.querySelector('#tuning-status .status-light').className = 'status-light bg-gray-500';
+            
+            // Ocultar indicador de afinado
+            tunedIndicator.classList.add('hidden');
+            isTuned = false;
         }
 
         // Actualizar la interfaz con la información de frecuencia
@@ -486,58 +487,51 @@
             // Calcular la diferencia en cents (100 cents = 1 semitono)
             const cents = 1200 * Math.log2(frequency / closestString.frequency);
             
-            // Determinar si está afinado (±5 cents de tolerancia)
-            const isInRange = Math.abs(cents) <= 5;
+            // Determinar si está afinado (±10 cents de tolerancia)
+            const isInRange = Math.abs(cents) <= 10;
             
             // Actualizar la nota actual
             currentNoteElement.textContent = closestString.note + closestString.octave;
             
             // Actualizar la aguja del afinador
-            const maxAngle = 45; // Máximo ángulo en grados
-            let angle = (cents / 50) * maxAngle; // 50 cents = ángulo máximo
+            const maxAngle = 45;
+            let angle = (cents / 50) * maxAngle;
             angle = Math.max(-maxAngle, Math.min(maxAngle, angle));
             needle.style.transform = `rotate(${angle}deg)`;
             
-            // Actualizar el estado de las cuerdas
+            // Actualizar el estado de la cuerda detectada
             updateStringStatus(closestString, frequency, cents, isInRange);
         }
 
         // Actualizar el estado de una cuerda específica
         function updateStringStatus(string, frequency, cents, isInRange) {
-            const stringElement = document.querySelector(`.string-indicator[data-string-number="${string.stringNumber}"]`);
+            // Mostrar información de la cuerda detectada
+            detectedString.textContent = `Cuerda ${string.stringNumber} (${string.note}${string.octave})`;
+            targetFrequency.textContent = `Objetivo: ${string.frequency.toFixed(2)} Hz`;
             
-            if (!stringElement) return;
+            // Actualizar estado de afinación
+            tuningStatus.classList.remove('hidden');
             
-            // Resaltar la cuerda activa
-            document.querySelectorAll('.string-indicator').forEach(el => {
-                el.classList.remove('active-string');
-            });
-            stringElement.classList.add('active-string');
-            
-            const statusLight = stringElement.querySelector('.string-status-light');
-            const statusText = stringElement.querySelector('.string-status-text');
-            const instruction = stringElement.querySelector('.string-instruction');
-            
-            // Cambiar el color según el estado de afinación
             if (isInRange) {
-                statusLight.className = 'w-4 h-4 rounded-full bg-green-500 mr-2 string-status-light';
-                statusText.textContent = 'Afinada';
-                statusText.className = 'text-sm string-status-text text-green-400';
-                instruction.textContent = '¡Perfecto! La cuerda está afinada';
-                instruction.className = 'text-sm string-instruction text-green-400';
+                // Mostrar indicador de afinado
+                tuningStatusText.textContent = 'Afinado';
+                document.querySelector('#tuning-status .status-light').className = 'status-light bg-green-500';
+                tuningInstruction.textContent = '¡Perfecto! La cuerda está afinada';
+                tunedIndicator.classList.remove('hidden');
+                isTuned = true;
             } else {
+                // Ocultar indicador de afinado si estaba visible
+                tunedIndicator.classList.add('hidden');
+                isTuned = false;
+                
                 if (frequency < string.frequency) {
-                    statusLight.className = 'w-4 h-4 rounded-full bg-red-500 mr-2 string-status-light';
-                    statusText.textContent = 'Demasiado bajo';
-                    statusText.className = 'text-sm string-status-text text-red-400';
-                    instruction.textContent = `Aprieta la cuerda (${Math.abs(cents.toFixed(1))} cents bajo)`;
-                    instruction.className = 'text-sm string-instruction text-red-400';
+                    tuningStatusText.textContent = 'Demasiado bajo';
+                    document.querySelector('#tuning-status .status-light').className = 'status-light bg-red-500';
+                    tuningInstruction.textContent = `Aprieta la cuerda (${Math.abs(cents.toFixed(1))} cents bajo)`;
                 } else {
-                    statusLight.className = 'w-4 h-4 rounded-full bg-yellow-500 mr-2 string-status-light';
-                    statusText.textContent = 'Demasiado alto';
-                    statusText.className = 'text-sm string-status-text text-yellow-400';
-                    instruction.textContent = `Afloja la cuerda (${cents.toFixed(1)} cents alto)`;
-                    instruction.className = 'text-sm string-instruction text-yellow-400';
+                    tuningStatusText.textContent = 'Demasiado alto';
+                    document.querySelector('#tuning-status .status-light').className = 'status-light bg-yellow-500';
+                    tuningInstruction.textContent = `Afloja la cuerda (${cents.toFixed(1)} cents alto)`;
                 }
             }
         }
